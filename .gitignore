@@ -1,0 +1,23 @@
+# ── Python ─────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+
+# ── Jupyter ────────────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+
+# ── Input data ─────────────────────────────────────────────────────────────────
+input/seklima/*
+!input/seklima/.gitkeep
+input/turdata/*
+!input/turdata/.gitkeep
+
+# ── Output ─────────────────────────────────────────────────────────────────────
+output/*
+!output/model_weekday.joblib
+!output/model_weekend.joblib
+!output/forecasts/
+output/forecasts/*
+!output/forecasts/.gitkeep
+
+# ── OS ─────────────────────────────────────────────────────────────────────────
+.DS_Store
