@@ -16,8 +16,6 @@ output/*
 !output/model_weekday.joblib
 !output/model_weekend.joblib
 !output/forecasts/
-output/forecasts/*
-!output/forecasts/.gitkeep
 
 # ── OS ─────────────────────────────────────────────────────────────────────────
 .DS_Store
