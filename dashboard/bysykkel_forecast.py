@@ -46,7 +46,8 @@ FORECAST_DAYS  = 9
 
 # Total trips taken in the previous calendar year.
 # Update this value each January once the annual Bysykkel data is available.
-PREV_YEAR_TRIPS = 1_111_979   # 2025 total
+# (hardcoded here because the dataset is not included on the GitHub repo)
+PREV_YEAR_TRIPS = 1112055   # 2025 total
 
 
 # ── Model ──────────────────────────────────────────────────────────────────────
@@ -141,21 +142,6 @@ def engineer_features(df: pd.DataFrame, school_hols: set, national_hols: set) ->
     # Holiday flags
     df["is_school_holiday"]   = df["hour"].dt.date.map(lambda d: int(d in school_hols))
     df["is_national_holiday"] = df["hour"].dt.date.map(lambda d: int(d in national_hols))
-
-    # Consecutive dry days (within forecast window, starting from 0)
-    daily_precip = (
-        df.groupby(df["hour"].dt.date)["precip_mm"]
-        .sum()
-        .reset_index()
-        .rename(columns={"hour": "date", "precip_mm": "daily_precip_mm"})
-    )
-    consecutive, count = [], 0
-    for is_dry in (daily_precip["daily_precip_mm"] < 1.0):
-        count = count + 1 if is_dry else 0
-        consecutive.append(count)
-    daily_precip["consecutive_dry_days"] = consecutive
-    date_to_cdd = daily_precip.set_index("date")["consecutive_dry_days"].to_dict()
-    df["consecutive_dry_days"] = df["hour"].dt.date.map(date_to_cdd)
 
     return df
 
