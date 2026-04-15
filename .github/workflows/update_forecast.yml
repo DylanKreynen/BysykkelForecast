@@ -2,7 +2,7 @@ name: Update 9-day forecast
 
 on:
   schedule:
-    - cron: "0 2 * * *"    # 04:00 Oslo (CEST) / 03:00 (CET)
+    - cron: "0 0 * * *"    # 02:00 Oslo (CEST) / 01:00 (CET), scheduled early to account for GitHub Actions delays
   workflow_dispatch:        # allow manual runs from the GitHub Actions tab
 
 permissions:

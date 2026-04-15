@@ -300,12 +300,15 @@ period_str = (
     f"{forecast_start.strftime('%-d %b')} – {forecast_end.strftime('%-d %b %Y')}"
 )
 
-if age_hours < 1:
+age_minutes = age_hours * 60
+if age_minutes < 1:
     age_label = "Updated just now"
-elif age_hours < 24:
+elif age_hours < 1:
+    age_label = f"Updated {age_minutes:.0f}m ago"
+elif age_hours < 48:
     age_label = f"Updated {age_hours:.0f}h ago"
 else:
-    age_label = f"Updated {age_hours / 24:.1f}d ago"
+    age_label = f"Updated {age_hours / 24:.0f}d ago"
 age_pill_color = "#C0392B" if age_hours > 30 else BLUE
 
 st.markdown(f"""
@@ -381,6 +384,7 @@ def chart_layout(fig, height):
         paper_bgcolor=WHITE,
         margin=dict(l=0, r=12, t=32, b=36),
         hovermode="x unified",
+        dragmode=False,
         hoverlabel=dict(
             bgcolor=NAVY,
             font_color=WHITE,
@@ -485,6 +489,7 @@ with st.container():
             for i, t in enumerate(noon_ticks)
         ],
         range=[x_min, x_max],
+        hoverformat="%H:%M %b %-d",
     )
 
     fig.update_yaxes(title_text="trips / hr", title_font=dict(size=11, color=GRAY_DIM), row=1, col=1)
@@ -550,6 +555,7 @@ with col_bar:
             bordercolor=NAVY,
         ),
         font=dict(family=FONT_STACK, color=NAVY),
+        dragmode=False,
     )
     st.plotly_chart(fig_d, use_container_width=True, config={"displayModeBar": False})
 
