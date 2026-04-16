@@ -19,5 +19,8 @@ output/*
 !output/station_surplus_deficit.html
 !output/station_surplus_deficit.png
 
+# ── Assets ─────────────────────────────────────────────────────────────────────
+dashboard/BysykkelLogo.png
+
 # ── OS ─────────────────────────────────────────────────────────────────────────
 .DS_Store
