@@ -3,7 +3,6 @@ Oslo Bysykkel – 9-Day Forecast Dashboard
 Run with:  streamlit run dashboard.py
 """
 
-import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -230,8 +229,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ── Constants ──────────────────────────────────────────────────────────────────
-FORECAST_DIR        = Path(__file__).parent.parent / "output" / "forecasts"
-STATION_QUALITY_CSV = Path(__file__).parent.parent / "output" / "station_forecast_quality_2025.csv"
+FORECAST_DIR  = Path(__file__).parent.parent / "output" / "forecasts"
 CLOSURE_START = 1
 CLOSURE_END   = 5
 
@@ -275,37 +273,6 @@ def daily_summary(df: pd.DataFrame) -> pd.DataFrame:
     )
     daily["is_rainy"] = daily["total_precip_mm"] > 1.0
     return daily
-
-@st.cache_data
-def build_station_map(path: Path) -> go.Figure:
-    stations = pd.read_csv(path).dropna(subset=["lat", "lon", "mean_daily_net_flow"])
-    cap      = float(np.percentile(np.abs(stations["mean_daily_net_flow"]), 95))
-    clamped  = stations["mean_daily_net_flow"].clip(-cap, cap)
-    sizes    = 5 + 23 * (np.abs(clamped) / cap)
-    hover    = [
-        f"<b>{r['name']}</b><br>"
-        f"Daily net flow: {r['mean_daily_net_flow']:+.1f} bikes/day"
-        for _, r in stations.iterrows()
-    ]
-    fig = go.Figure(go.Scattermap(
-        lat=stations["lat"], lon=stations["lon"],
-        mode="markers",
-        marker=dict(
-            size=list(sizes),
-            color=list(stations["mean_daily_net_flow"]),
-            colorscale=[[0.0, "rgb(220,60,60)"], [0.5, "rgb(240,240,240)"], [1.0, "rgb(60,180,60)"]],
-            cmin=-cap, cmax=cap,
-            colorbar=dict(title="Bikes/day", tickformat="+.0f", thickness=12, len=0.55),
-            opacity=0.88,
-        ),
-        text=hover, hoverinfo="text",
-    ))
-    fig.update_layout(
-        map=dict(style="carto-positron", center=dict(lat=59.918, lon=10.745), zoom=12.3),
-        margin=dict(l=0, r=0, t=0, b=0),
-        height=520,
-    )
-    return fig
 
 forecast_path = latest_forecast_path(FORECAST_DIR)
 fetch_time    = datetime.strptime(forecast_path.stem.split("_", 1)[1], "%d%m%y-%H.%M") \
@@ -657,23 +624,6 @@ with st.expander("Wind & cloud cover detail"):
     fig_wc.update_yaxes(title_text="m/s", title_font=dict(size=11, color=GRAY_DIM), rangemode="tozero", row=1)
     fig_wc.update_yaxes(title_text="%",   title_font=dict(size=11, color=GRAY_DIM), range=[0, 102],     row=2)
     st.plotly_chart(fig_wc, use_container_width=True, config={"displayModeBar": False})
-
-# ── Station surplus/deficit map ────────────────────────────────────────────────
-st.markdown('<div class="section-heading">Station surplus &amp; deficit</div>', unsafe_allow_html=True)
-st.markdown(
-    '<div class="section-sub">Average daily net bike flow per station, based on 2025 trip data. '
-    'Riders tend to travel downhill into the centre, creating a daily rebalancing problem. '
-    'Green = surplus (bikes accumulate); red = deficit (bikes drain away).</div>',
-    unsafe_allow_html=True,
-)
-if STATION_QUALITY_CSV.exists():
-    st.plotly_chart(
-        build_station_map(STATION_QUALITY_CSV),
-        use_container_width=True,
-        config={"displayModeBar": False},
-    )
-else:
-    st.info("Station data unavailable — run notebook 04 to generate station_forecast_quality_2025.csv.")
 
 # ── Raw data (expander) ────────────────────────────────────────────────────────
 with st.expander("Raw hourly data"):

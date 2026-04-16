@@ -18,7 +18,6 @@ output/*
 !output/forecasts/
 !output/station_surplus_deficit.html
 !output/station_surplus_deficit.png
-!output/station_forecast_quality_2025.csv
 
 # ── OS ─────────────────────────────────────────────────────────────────────────
 .DS_Store
