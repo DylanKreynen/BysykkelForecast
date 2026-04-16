@@ -5,7 +5,7 @@ Oslo's bike sharing system, [Bysykkel](https://oslo.bysykkel.no/en), has a rebal
 Users tend to ride bikes *downhill*: from the surrounding neighbourhoods into the city centre, and use other transport to get home. This creates a predictable daily imbalance: central stations fill up with surplus bikes that need to be transported away, while uphill stations drain of bikes and need to be restocked.
 
 ![Station surplus and deficit map](output/station_surplus_deficit.png)
-*Average daily net bike flow per station (2025). Green = surplus (bikes accumulate); red = deficit (bikes drain away). The downhill drift towards the city centre is clearly visible. — [interactive version](output/station_surplus_deficit.html)*
+*Average daily net bike flow per station (2025). Green = surplus (bikes accumulate); red = deficit (bikes drain away). The downhill drift towards the city centre is clearly visible.
 
 Rebalancing fleets of bikes across the city is expensive. The further in advance Bysykkel can anticipate demand, the better they can plan logistics: fewer emergency runs, lower costs, better service availability for users.
 
