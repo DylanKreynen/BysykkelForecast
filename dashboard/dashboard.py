@@ -3,13 +3,13 @@ Oslo Bysykkel – 9-Day Forecast Dashboard
 Run with:  streamlit run dashboard.py
 """
 
-import time
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 import base64
 
 # ── Brand tokens ───────────────────────────────────────────────────────────────
@@ -275,8 +275,9 @@ def daily_summary(df: pd.DataFrame) -> pd.DataFrame:
     return daily
 
 forecast_path = latest_forecast_path(FORECAST_DIR)
-fetch_time    = datetime.strptime(forecast_path.stem.split("_", 1)[1], "%d%m%y-%H.%M")
-age_hours     = (datetime.now() - fetch_time).total_seconds() / 3600
+fetch_time    = datetime.strptime(forecast_path.stem.split("_", 1)[1], "%d%m%y-%H.%M") \
+                        .replace(tzinfo=ZoneInfo("Europe/Oslo"))
+age_hours     = (datetime.now(tz=timezone.utc) - fetch_time).total_seconds() / 3600
 
 df    = load_forecast(forecast_path)
 daily = daily_summary(df)
