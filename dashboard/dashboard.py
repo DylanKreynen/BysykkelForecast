@@ -294,8 +294,7 @@ avg_temp     = df["temp_c"].mean()
 total_precip = df["precip_mm"].sum()
 
 # ── Hero header ────────────────────────────────────────────────────────────────
-_logo_b64 = base64.b64encode((Path(__file__).parent / "BysykkelLogo.png").read_bytes()).decode()
-logo_img  = f'<img src="data:image/png;base64,{_logo_b64}" width="34" height="34" style="display:block;">'
+logo_img  = '<span style="font-size:26px;line-height:1;display:block;">🚲</span>'
 
 period_str = (
     f"{forecast_start.strftime('%-d %b')} – {forecast_end.strftime('%-d %b %Y')}"
