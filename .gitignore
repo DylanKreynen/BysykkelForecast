@@ -16,6 +16,8 @@ output/*
 !output/model_weekday.joblib
 !output/model_weekend.joblib
 !output/forecasts/
+!output/station_surplus_deficit.html
+!output/station_surplus_deficit.png
 
 # ── OS ─────────────────────────────────────────────────────────────────────────
 .DS_Store
