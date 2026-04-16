@@ -665,7 +665,7 @@ st.markdown("""
 # ── Footer ─────────────────────────────────────────────────────────────────────
 st.markdown(f"""
 <div class="footer">
-  <span>Weather data: <strong>MET Norway Locationforecast 2.0</strong> &nbsp;·&nbsp;
+  <span>Weather data: <strong>MET Norway</strong> &nbsp;·&nbsp;
         Historical trip data: <strong>Oslo Bysykkel</strong> &nbsp;·&nbsp;
         Model: <strong>2x XGBoost</strong> &nbsp;·&nbsp;
         Forecast generated: <strong>{fetch_time.strftime("%-d %b %Y, %H:%M")} (Oslo time)</strong>
