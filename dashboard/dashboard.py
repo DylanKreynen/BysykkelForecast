@@ -276,7 +276,7 @@ def daily_summary(df: pd.DataFrame) -> pd.DataFrame:
 
 forecast_path = latest_forecast_path(FORECAST_DIR)
 fetch_time    = datetime.strptime(forecast_path.stem.split("_", 1)[1], "%d%m%y-%H.%M")
-age_hours     = (time.time() - forecast_path.stat().st_mtime) / 3600
+age_hours     = (datetime.now() - fetch_time).total_seconds() / 3600
 
 df    = load_forecast(forecast_path)
 daily = daily_summary(df)
