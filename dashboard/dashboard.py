@@ -29,27 +29,18 @@ FONT_STACK  = '"Urban Grotesk", "Helvetica Neue", Arial, sans-serif'
 
 # ── Empirical confidence intervals ─────────────────────────────────────────────
 # Hourly error quantiles (predicted − actual) from a 2-month validation period.
-# Precipitation-aware: keyed by (lead_days, is_rainy) → (q10, q25, q75, q90).
+# Keyed by lead_days → (q10, q25, q75, q90).
 # lead_days = floor(hours since forecast generation / 24), capped at 8.
-ERROR_QUANTILES: dict[tuple[int, bool], tuple[float, float, float, float]] = {
-    (0, False): ( -26.7,  -7.0,  33.0,  63.7),
-    (0, True):  ( -52.8, -26.0,  13.5,  38.4),
-    (1, False): ( -28.0,  -8.0,  33.0,  58.0),
-    (1, True):  ( -86.4, -47.0,  13.0,  57.8),
-    (2, False): ( -29.0,  -7.0,  33.0,  60.0),
-    (2, True):  (-120.2, -78.0,  -5.0,  20.4),
-    (3, False): ( -31.0,  -7.0,  33.0,  60.0),
-    (3, True):  (-132.4, -74.0,   1.0,  36.4),
-    (4, False): ( -29.0,  -5.5,  36.0,  66.0),
-    (4, True):  (-148.1, -89.8,  -7.0,  35.3),
-    (5, False): ( -31.0,  -6.0,  40.5,  77.8),
-    (5, True):  (-189.3,-110.5, -13.0,  22.9),
-    (6, False): ( -32.0,  -5.8,  45.8,  85.0),
-    (6, True):  (-160.2,-100.5,  -4.5,  44.4),
-    (7, False): ( -33.0,  -5.0,  47.0,  83.0),
-    (7, True):  (-143.8, -91.0,  -3.0,  27.0),
-    (8, False): ( -34.0,  -6.0,  54.0,  91.1),
-    (8, True):  (-172.2,-105.2, -13.0,  38.7),
+ERROR_QUANTILES: dict[int, tuple[float, float, float, float]] = {
+    0: ( -31.0, -10.0,  31.0,  61.0),
+    1: ( -41.0, -12.0,  30.0,  58.0),
+    2: ( -57.1, -18.0,  28.0,  56.0),
+    3: ( -60.1, -19.0,  29.0,  57.0),
+    4: ( -67.0, -21.0,  31.0,  63.0),
+    5: ( -62.0, -17.0,  36.0,  73.0),
+    6: ( -45.0, -11.0,  43.0,  82.0),
+    7: ( -55.0, -16.0,  41.0,  80.0),
+    8: ( -50.0, -13.0,  50.0,  88.0),
 }
 
 # ── Page config ────────────────────────────────────────────────────────────────
@@ -308,13 +299,11 @@ def attach_confidence_bands(df: pd.DataFrame, generated_at: datetime) -> pd.Data
           else pd.Timestamp(generated_at).tz_convert(None)
     lead_hours = ((df["hour"] - gen).dt.total_seconds() / 3600).round().astype(int)
     lead_days  = (lead_hours / 24).apply(np.floor).astype(int).clip(lower=0, upper=8)
-    rain       = df["precip_mm"] > 0
 
-    keys = list(zip(lead_days, rain))
-    df["bound_q10"] = [ERROR_QUANTILES[k][0] for k in keys]
-    df["bound_q25"] = [ERROR_QUANTILES[k][1] for k in keys]
-    df["bound_q75"] = [ERROR_QUANTILES[k][2] for k in keys]
-    df["bound_q90"] = [ERROR_QUANTILES[k][3] for k in keys]
+    df["bound_q10"] = [ERROR_QUANTILES[k][0] for k in lead_days]
+    df["bound_q25"] = [ERROR_QUANTILES[k][1] for k in lead_days]
+    df["bound_q75"] = [ERROR_QUANTILES[k][2] for k in lead_days]
+    df["bound_q90"] = [ERROR_QUANTILES[k][3] for k in lead_days]
 
     for col in ["bound_q10", "bound_q25", "bound_q75", "bound_q90"]:
         df[col] = (df["predicted_trips"] + df[col]).clip(lower=0)
