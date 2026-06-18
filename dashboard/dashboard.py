@@ -3,6 +3,7 @@ Oslo Bysykkel – 9-Day Forecast Dashboard
 Run with:  streamlit run dashboard.py
 """
 
+import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -25,6 +26,31 @@ ORANGE      = "#E8622A"   # temperature accent
 PRECIP_BLUE = "#7BB3E8"   # precipitation bars
 GREEN       = "#2DA35E"   # wind
 FONT_STACK  = '"Urban Grotesk", "Helvetica Neue", Arial, sans-serif'
+
+# ── Empirical confidence intervals ─────────────────────────────────────────────
+# Hourly error quantiles (predicted − actual) from a 2-month validation period.
+# Precipitation-aware: keyed by (lead_days, is_rainy) → (q10, q25, q75, q90).
+# lead_days = floor(hours since forecast generation / 24), capped at 8.
+ERROR_QUANTILES: dict[tuple[int, bool], tuple[float, float, float, float]] = {
+    (0, False): ( -26.7,  -7.0,  33.0,  63.7),
+    (0, True):  ( -52.8, -26.0,  13.5,  38.4),
+    (1, False): ( -28.0,  -8.0,  33.0,  58.0),
+    (1, True):  ( -86.4, -47.0,  13.0,  57.8),
+    (2, False): ( -29.0,  -7.0,  33.0,  60.0),
+    (2, True):  (-120.2, -78.0,  -5.0,  20.4),
+    (3, False): ( -31.0,  -7.0,  33.0,  60.0),
+    (3, True):  (-132.4, -74.0,   1.0,  36.4),
+    (4, False): ( -29.0,  -5.5,  36.0,  66.0),
+    (4, True):  (-148.1, -89.8,  -7.0,  35.3),
+    (5, False): ( -31.0,  -6.0,  40.5,  77.8),
+    (5, True):  (-189.3,-110.5, -13.0,  22.9),
+    (6, False): ( -32.0,  -5.8,  45.8,  85.0),
+    (6, True):  (-160.2,-100.5,  -4.5,  44.4),
+    (7, False): ( -33.0,  -5.0,  47.0,  83.0),
+    (7, True):  (-143.8, -91.0,  -3.0,  27.0),
+    (8, False): ( -34.0,  -6.0,  54.0,  91.1),
+    (8, True):  (-172.2,-105.2, -13.0,  38.7),
+}
 
 # ── Page config ────────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -274,12 +300,39 @@ def daily_summary(df: pd.DataFrame) -> pd.DataFrame:
     daily["is_rainy"] = daily["total_precip_mm"] > 1.0
     return daily
 
+@st.cache_data
+def attach_confidence_bands(df: pd.DataFrame, generated_at: datetime) -> pd.DataFrame:
+    df = df.copy()
+    # Strip timezone from generated_at; df["hour"] is naive Oslo local time
+    gen = pd.Timestamp(generated_at).tz_localize(None) if generated_at.tzinfo is None \
+          else pd.Timestamp(generated_at).tz_convert(None)
+    lead_hours = ((df["hour"] - gen).dt.total_seconds() / 3600).round().astype(int)
+    lead_days  = (lead_hours / 24).apply(np.floor).astype(int).clip(lower=0, upper=8)
+    rain       = df["precip_mm"] > 0
+
+    keys = list(zip(lead_days, rain))
+    df["bound_q10"] = [ERROR_QUANTILES[k][0] for k in keys]
+    df["bound_q25"] = [ERROR_QUANTILES[k][1] for k in keys]
+    df["bound_q75"] = [ERROR_QUANTILES[k][2] for k in keys]
+    df["bound_q90"] = [ERROR_QUANTILES[k][3] for k in keys]
+
+    for col in ["bound_q10", "bound_q25", "bound_q75", "bound_q90"]:
+        df[col] = (df["predicted_trips"] + df[col]).clip(lower=0)
+
+    # Zero out closed-hours bands (service closed, no trips possible)
+    is_closed = df["hour"].dt.hour.between(CLOSURE_START, CLOSURE_END - 1)
+    df.loc[is_closed, ["bound_q10", "bound_q25", "bound_q75", "bound_q90"]] = 0
+
+    return df
+
+
 forecast_path = latest_forecast_path(FORECAST_DIR)
 fetch_time    = datetime.strptime(forecast_path.stem.split("_", 1)[1], "%d%m%y-%H.%M") \
                         .replace(tzinfo=ZoneInfo("Europe/Oslo"))
 age_hours     = (datetime.now(tz=timezone.utc) - fetch_time).total_seconds() / 3600
 
 df    = load_forecast(forecast_path)
+df    = attach_confidence_bands(df, fetch_time)
 daily = daily_summary(df)
 open_df = df[~df["hour"].dt.hour.between(CLOSURE_START, CLOSURE_END - 1)]
 
@@ -409,7 +462,7 @@ def chart_layout(fig, height):
 # ── Hourly forecast chart ──────────────────────────────────────────────────────
 st.markdown('<div class="section-heading">Hourly forecast</div>', unsafe_allow_html=True)
 st.markdown(
-    '<div class="section-sub">Hover to inspect individual hours. Grey bands mark the 01:00–04:59 service closure window.</div>',
+    '<div class="section-sub">Hover to inspect individual hours. Shaded bands show empirical 50% and 80% uncertainty intervals. Grey bands mark the 01:00–04:59 service closure window.</div>',
     unsafe_allow_html=True,
 )
 
@@ -427,15 +480,40 @@ with st.container():
         ann.update(x=0, xanchor="left")
         ann.font.update(family=FONT_STACK, size=13, color=GRAY_DIM)
 
-    # Trips
+    # Confidence bands — 80% interval then 50% interval (tonexty fills between pairs)
+    for lo_col, hi_col, fill_color in [
+        ("bound_q10", "bound_q90", "rgba(0,95,201,0.08)"),
+        ("bound_q25", "bound_q75", "rgba(0,95,201,0.14)"),
+    ]:
+        fig.add_trace(
+            go.Scatter(
+                x=df["hour"], y=df[lo_col],
+                line=dict(width=0), hoverinfo="skip", showlegend=False,
+            ),
+            row=1, col=1,
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=df["hour"], y=df[hi_col],
+                fill="tonexty", fillcolor=fill_color,
+                line=dict(width=0), hoverinfo="skip", showlegend=False,
+            ),
+            row=1, col=1,
+        )
+
+    # Trips line
     fig.add_trace(
         go.Scatter(
             x=df["hour"], y=df["predicted_trips"],
-            fill="tozeroy",
-            fillcolor=f"rgba(0,95,201,0.12)",
             line=dict(color=BLUE, width=2),
             name="Trips",
-            hovertemplate="<b>%{y:,} trips</b><extra></extra>",
+            customdata=df[["bound_q10", "bound_q90"]].values,
+            hovertemplate=(
+                "<b>%{y:,} trips</b><br>"
+                "<span style='color:rgba(255,255,255,0.6)'>80% CI: "
+                "%{customdata[0]:,.0f} – %{customdata[1]:,.0f}</span>"
+                "<extra></extra>"
+            ),
         ),
         row=1, col=1,
     )
